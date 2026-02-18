@@ -8,11 +8,11 @@ fn select_folder() -> Option<PathBuf> {
 
     match folder {
         Some(path) => {
-            println!("Selected folder: {}", path.display());
+            // println!("Selected folder: {}", path.display());
             Some(path) // return it
         }
         None => {
-            println!("No folder selected.");
+            // println!("No folder selected.");
             None // return None
         }
     }
