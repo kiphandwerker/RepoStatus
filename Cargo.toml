@@ -4,4 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+walkdir = "2"
+rayon = "1.8"
+git2 = "0.18"
 rfd = "0.14"
+eframe = "0.27"
+egui = "0.27"
