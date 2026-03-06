@@ -11,6 +11,7 @@ use walkdir::WalkDir;
 #[derive(Clone)]
 struct RepoInfo {
     folder_path: PathBuf,
+    is_git_repo: bool,
     is_github_repo: bool,
     git_status: String,
 }
@@ -33,17 +34,17 @@ impl Default for GitApp {
     }
 }
 
-fn is_github_repo(repo: &Repository) -> bool {
-    repo.remotes()
-        .ok()
-        .and_then(|r| {
-            r.iter()
-                .flatten()
-                .filter_map(|n| repo.find_remote(n).ok())
-                .any(|r| r.url().map(|u| u.contains("github.com")).unwrap_or(false))
-                .then_some(())
-        })
-        .is_some()
+fn is_github_repo(repo: &Repository) -> bool {
+    repo.remotes()
+        .ok()
+        .and_then(|r| {
+            r.iter()
+                .flatten()
+                .filter_map(|n| repo.find_remote(n).ok())
+                .any(|r| r.url().map(|u| u.contains("github.com")).unwrap_or(false))
+                .then_some(())
+        })
+        .is_some()
 }
 
 fn get_git_status(repo: &Repository) -> String {
@@ -88,32 +89,36 @@ fn get_git_status(repo: &Repository) -> String {
 
 
 fn scan_repos(root: &Path) -> Vec<RepoInfo> {
-    let mut repo_paths = Vec::new();
+    let mut folders = Vec::new();
 
     for entry in WalkDir::new(root)
-        .follow_links(false)
+        .min_depth(1)
+        .max_depth(2) // treat each folder in root as a project
         .into_iter()
         .filter_map(|e| e.ok())
     {
         if entry.file_type().is_dir() {
-            let git_path = entry.path().join(".git");
-
-            if git_path.exists() {
-                repo_paths.push(entry.path().to_path_buf());
-            }
+            folders.push(entry.path().to_path_buf());
         }
     }
 
-    repo_paths
+    folders
         .par_iter()
-        .filter_map(|path| {
-            let repo = Repository::open(path).ok()?;
-
-            Some(RepoInfo {
-                folder_path: path.clone(),
-                is_github_repo: is_github_repo(&repo),
-                git_status: get_git_status(&repo),
-            })
+        .map(|path| {
+            match Repository::open(path) {
+                Ok(repo) => RepoInfo {
+                    folder_path: path.clone(),
+                    is_git_repo: true,
+                    is_github_repo: is_github_repo(&repo),
+                    git_status: get_git_status(&repo),
+                },
+                Err(_) => RepoInfo {
+                    folder_path: path.clone(),
+                    is_git_repo: false,
+                    is_github_repo: false,
+                    git_status: "Non-Git".into(),
+                },
+            }
         })
         .collect()
 }
@@ -186,6 +191,7 @@ impl eframe::App for GitApp {
                         egui::Grid::new(group).striped(true).show(ui, |ui| {
 
                             ui.label("Folder");
+                            ui.label("Git");
                             ui.label("GitHub");
                             ui.label("Status");
                             ui.end_row();
@@ -200,7 +206,9 @@ impl eframe::App for GitApp {
 
                                 ui.label(folder.to_string());
 
-                                ui.label(if repo.is_github_repo { "Yes" } else { "No" });
+                                ui.label(if repo.is_git_repo { "Yes" } else { "No" });
+                                
+                                ui.label(if repo.is_github_repo { "Yes" } else { "-" });
 
                                 let color = match repo.git_status.as_str() {
                                     "Ahead" => egui::Color32::LIGHT_BLUE,
@@ -209,7 +217,6 @@ impl eframe::App for GitApp {
                                     "Diverged" => egui::Color32::YELLOW,
                                     _ => egui::Color32::GRAY,
                                 };
-
                                 ui.colored_label(color, &repo.git_status);
 
                                 ui.end_row();
