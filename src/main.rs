@@ -33,17 +33,17 @@ impl Default for GitApp {
     }
 }
 
-fn is_github_repo(repo: &Repository) -> bool {
-    repo.remotes()
-        .ok()
-        .and_then(|r| {
-            r.iter()
-                .flatten()
-                .filter_map(|n| repo.find_remote(n).ok())
-                .any(|r| r.url().map(|u| u.contains("github.com")).unwrap_or(false))
-                .then_some(())
-        })
-        .is_some()
+fn is_github_repo(repo: &Repository) -> bool {
+    repo.remotes()
+        .ok()
+        .and_then(|r| {
+            r.iter()
+                .flatten()
+                .filter_map(|n| repo.find_remote(n).ok())
+                .any(|r| r.url().map(|u| u.contains("github.com")).unwrap_or(false))
+                .then_some(())
+        })
+        .is_some()
 }
 
 fn get_git_status(repo: &Repository) -> String {
