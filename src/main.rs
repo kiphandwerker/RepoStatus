@@ -1,4 +1,5 @@
 use eframe::egui;
+use rayon::prelude::*;
 use git2::{BranchType, Repository};
 use rfd::FileDialog;
 use std::collections::HashMap;
@@ -33,18 +34,16 @@ impl Default for GitApp {
 }
 
 fn is_github_repo(repo: &Repository) -> bool {
-    if let Ok(remotes) = repo.remotes() {
-        for name in remotes.iter().flatten() {
-            if let Ok(remote) = repo.find_remote(name) {
-                if let Some(url) = remote.url() {
-                    if url.contains("github.com") {
-                        return true;
-                    }
-                }
-            }
-        }
-    }
-    false
+    repo.remotes()
+        .ok()
+        .and_then(|r| {
+            r.iter()
+                .flatten()
+                .filter_map(|n| repo.find_remote(n).ok())
+                .any(|r| r.url().map(|u| u.contains("github.com")).unwrap_or(false))
+                .then_some(())
+        })
+        .is_some()
 }
 
 fn get_git_status(repo: &Repository) -> String {
@@ -87,8 +86,9 @@ fn get_git_status(repo: &Repository) -> String {
     }
 }
 
+
 fn scan_repos(root: &Path) -> Vec<RepoInfo> {
-    let mut repos = Vec::new();
+    let mut repo_paths = Vec::new();
 
     for entry in WalkDir::new(root)
         .follow_links(false)
@@ -99,18 +99,23 @@ fn scan_repos(root: &Path) -> Vec<RepoInfo> {
             let git_path = entry.path().join(".git");
 
             if git_path.exists() {
-                if let Ok(repo) = Repository::open(entry.path()) {
-                    repos.push(RepoInfo {
-                        folder_path: entry.path().to_path_buf(),
-                        is_github_repo: is_github_repo(&repo),
-                        git_status: get_git_status(&repo),
-                    });
-                }
+                repo_paths.push(entry.path().to_path_buf());
             }
         }
     }
 
-    repos
+    repo_paths
+        .par_iter()
+        .filter_map(|path| {
+            let repo = Repository::open(path).ok()?;
+
+            Some(RepoInfo {
+                folder_path: path.clone(),
+                is_github_repo: is_github_repo(&repo),
+                git_status: get_git_status(&repo),
+            })
+        })
+        .collect()
 }
 
 fn group_repos(root: &Path, repos: Vec<RepoInfo>) -> HashMap<String, Vec<RepoInfo>> {
