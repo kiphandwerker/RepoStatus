@@ -192,7 +192,12 @@ impl eframe::App for GitApp {
 
                     ui.collapsing(format!("📁 {}", group), |ui| {
 
-                        egui::Grid::new(group).striped(true).show(ui, |ui| {
+                    ui.set_width(ui.available_width());
+
+                    egui::Grid::new(group)
+                        .striped(true)
+                        .min_col_width(120.0)
+                        .show(ui, |ui| {
 
                             ui.label("Folder");
                             ui.label("Git");
