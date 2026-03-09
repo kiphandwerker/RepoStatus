@@ -93,12 +93,16 @@ fn scan_repos(root: &Path) -> Vec<RepoInfo> {
 
     for entry in WalkDir::new(root)
         .min_depth(1)
-        .max_depth(2) // treat each folder in root as a project
+        .max_depth(2)
         .into_iter()
         .filter_map(|e| e.ok())
     {
         if entry.file_type().is_dir() {
-            folders.push(entry.path().to_path_buf());
+            let depth = entry.depth();
+
+            if depth == 2 {
+                folders.push(entry.path().to_path_buf());
+            }
         }
     }
 
