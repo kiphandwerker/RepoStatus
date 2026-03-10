@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 use eframe::egui;
 use rayon::prelude::*;
 use git2::{BranchType, Repository};
@@ -164,6 +165,9 @@ impl eframe::App for GitApp {
         egui::CentralPanel::default().show(ctx, |ui| {
 
             ui.heading("Git Repo Dashboard");
+           
+            ui.label("Author: Kip Handwerker");
+            ui.separator();
 
             if ui.button("Select Root Folder").clicked() && !self.scanning {
                 if let Some(folder) = FileDialog::new().pick_folder() {
