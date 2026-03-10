@@ -1,7 +1,7 @@
-#![windows_subsystem = "windows"]
+// #![windows_subsystem = "windows"]
 use eframe::egui;
+use git2::{FetchOptions, RemoteCallbacks, Repository};
 use rayon::prelude::*;
-use git2::{BranchType, Repository};
 use rfd::FileDialog;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -49,64 +49,109 @@ fn is_github_repo(repo: &Repository) -> bool {
 }
 
 fn get_git_status(repo: &Repository) -> String {
-    // Get current branch
+    println!("--------------------------------");
+    println!("Checking repo: {}", repo.path().display());
+
+    // HEAD
     let head = match repo.head() {
-        Ok(h) if h.is_branch() => h,
-        _ => return "NA".into(),
+        Ok(h) if h.is_branch() => {
+            println!("HEAD reference OK");
+            h
+        }
+        Ok(_) => {
+            println!("HEAD is not a branch (detached)");
+            return "NA".into();
+        }
+        Err(e) => {
+            println!("HEAD error: {}", e);
+            return "NA".into();
+        }
     };
 
+    // branch name
     let branch_name = match head.shorthand() {
-        Some(b) => b,
-        None => return "NA".into(),
+        Some(name) => {
+            println!("Current branch: {}", name);
+            name
+        }
+        None => {
+            println!("Could not determine branch name");
+            return "NA".into();
+        }
     };
 
-    let local_branch = match repo.find_branch(branch_name, BranchType::Local) {
-        Ok(b) => b,
-        Err(_) => return "NA".into(),
+    // local branch
+    let branch = match repo.find_branch(branch_name, git2::BranchType::Local) {
+        Ok(b) => {
+            println!("Local branch found");
+            b
+        }
+        Err(e) => {
+            println!("Error finding local branch: {}", e);
+            return "NA".into();
+        }
     };
 
-    // Try to get upstream (remote-tracking branch)
-    let upstream_branch = match local_branch.upstream() {
-        Ok(b) => b,
-        Err(_) => return "NA".into(),
+    // upstream branch
+    let upstream = match branch.upstream() {
+        Ok(u) => {
+            println!("Upstream branch found");
+            u
+        }
+        Err(e) => {
+            println!("No upstream branch: {}", e);
+            return "NA".into();
+        }
     };
 
-    // Extract remote name
-    let upstream_name = upstream_branch.name().unwrap_or(None).unwrap_or("");
-    let remote_name = upstream_name.split('/').nth(2).unwrap_or("origin");
-
-    // Fetch from remote
-    if let Ok(mut remote) = repo.find_remote(remote_name) {
-        let _ = remote.fetch(&[branch_name], Some(&mut git2::FetchOptions::new()), None);
-    }
-
-    // Resolve commits
-    let local_commit = match local_branch.get().peel_to_commit() {
-        Ok(c) => c,
-        Err(_) => return "NA".into(),
+    // local commit
+    let local_oid = match branch.get().target() {
+        Some(id) => {
+            println!("Local commit: {}", id);
+            id
+        }
+        None => {
+            println!("Local branch has no commit");
+            return "NA".into();
+        }
     };
 
-    // Resolve upstream commit explicitly
-    let upstream_commit = match repo.find_reference(&format!("refs/remotes/{}/{}", remote_name, branch_name)) {
-        Ok(r) => match r.peel_to_commit() {
-            Ok(c) => c,
-            Err(_) => return "NA".into(),
-        },
-        Err(_) => return "NA".into(),
+    // remote commit
+    let remote_oid = match upstream.get().target() {
+        Some(id) => {
+            println!("Remote commit: {}", id);
+            id
+        }
+        None => {
+            println!("Remote branch has no commit");
+            return "NA".into();
+        }
     };
 
-    // Compare ahead/behind
-    match repo.graph_ahead_behind(local_commit.id(), upstream_commit.id()) {
-        Ok((ahead, behind)) => match (ahead, behind) {
-            (0, 0) => "Current".into(),
-            (a, 0) if a > 0 => "Ahead".into(),
-            (0, b) if b > 0 => "Behind".into(),
-            _ => "Diverged".into(),
-        },
-        Err(_) => "NA".into(),
-    }
+    // ahead/behind calculation
+    let (ahead, behind) = match repo.graph_ahead_behind(local_oid, remote_oid) {
+        Ok(result) => {
+            println!("Ahead: {}, Behind: {}", result.0, result.1);
+            result
+        }
+        Err(e) => {
+            println!("graph_ahead_behind error: {}", e);
+            return "NA".into();
+        }
+    };
+
+    let status = match (ahead, behind) {
+        (0, 0) => "Current",
+        (a, 0) if a > 0 => "Ahead",
+        (0, b) if b > 0 => "Behind",
+        _ => "Diverged",
+    };
+
+    println!("Final Status: {}", status);
+    println!("--------------------------------");
+
+    status.into()
 }
-
 
 fn scan_repos(root: &Path) -> Vec<RepoInfo> {
     let mut folders = Vec::new();
@@ -128,21 +173,19 @@ fn scan_repos(root: &Path) -> Vec<RepoInfo> {
 
     folders
         .par_iter()
-        .map(|path| {
-            match Repository::open(path) {
-                Ok(repo) => RepoInfo {
-                    folder_path: path.clone(),
-                    is_git_repo: true,
-                    is_github_repo: is_github_repo(&repo),
-                    git_status: get_git_status(&repo),
-                },
-                Err(_) => RepoInfo {
-                    folder_path: path.clone(),
-                    is_git_repo: false,
-                    is_github_repo: false,
-                    git_status: "Non-Git".into(),
-                },
-            }
+        .map(|path| match Repository::open(path) {
+            Ok(repo) => RepoInfo {
+                folder_path: path.clone(),
+                is_git_repo: true,
+                is_github_repo: is_github_repo(&repo),
+                git_status: get_git_status(&repo),
+            },
+            Err(_) => RepoInfo {
+                folder_path: path.clone(),
+                is_git_repo: false,
+                is_github_repo: false,
+                git_status: "Non-Git".into(),
+            },
         })
         .collect()
 }
@@ -170,7 +213,6 @@ fn group_repos(root: &Path, repos: Vec<RepoInfo>) -> HashMap<String, Vec<RepoInf
 
 impl eframe::App for GitApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-
         if let Some(receiver) = &self.receiver {
             if let Ok(repos) = receiver.try_recv() {
                 if let Some(root) = &self.root {
@@ -182,9 +224,8 @@ impl eframe::App for GitApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-
             ui.heading("Git Repo Dashboard");
-           
+
             ui.label("Author: Kip Handwerker");
             ui.separator();
 
@@ -210,63 +251,50 @@ impl eframe::App for GitApp {
             ui.separator();
 
             egui::ScrollArea::vertical().show(ui, |ui| {
-
                 for (group, repos) in &self.grouped {
-
                     ui.collapsing(format!("📁 {}", group), |ui| {
+                        ui.set_width(ui.available_width());
 
-                    ui.set_width(ui.available_width());
-
-                    egui::Grid::new(group)
-                        .striped(true)
-                        .min_col_width(120.0)
-                        .show(ui, |ui| {
-
-                            ui.label("Folder");
-                            ui.label("Git");
-                            ui.label("GitHub");
-                            ui.label("Status");
-                            ui.end_row();
-
-                            for repo in repos {
-
-                                let folder = repo
-                                    .folder_path
-                                    .file_name()
-                                    .unwrap()
-                                    .to_string_lossy();
-
-                                ui.label(folder.to_string());
-
-                                ui.label(if repo.is_git_repo { "Yes" } else { "No" });
-                                
-                                ui.label(if repo.is_github_repo { "Yes" } else { "-" });
-
-                                let color = match repo.git_status.as_str() {
-                                    "Ahead" => egui::Color32::LIGHT_BLUE,
-                                    "Behind" => egui::Color32::RED,
-                                    "Current" => egui::Color32::GREEN,
-                                    "Diverged" => egui::Color32::YELLOW,
-                                    _ => egui::Color32::GRAY,
-                                };
-                                ui.colored_label(color, &repo.git_status);
-
+                        egui::Grid::new(group)
+                            .striped(true)
+                            .min_col_width(120.0)
+                            .show(ui, |ui| {
+                                ui.label("Folder");
+                                ui.label("Git");
+                                ui.label("GitHub");
+                                ui.label("Status");
                                 ui.end_row();
-                            }
 
-                        });
+                                for repo in repos {
+                                    let folder =
+                                        repo.folder_path.file_name().unwrap().to_string_lossy();
 
+                                    ui.label(folder.to_string());
+
+                                    ui.label(if repo.is_git_repo { "Yes" } else { "No" });
+
+                                    ui.label(if repo.is_github_repo { "Yes" } else { "-" });
+
+                                    let color = match repo.git_status.as_str() {
+                                        "Ahead" => egui::Color32::LIGHT_BLUE,
+                                        "Behind" => egui::Color32::RED,
+                                        "Current" => egui::Color32::GREEN,
+                                        "Diverged" => egui::Color32::YELLOW,
+                                        _ => egui::Color32::GRAY,
+                                    };
+                                    ui.colored_label(color, &repo.git_status);
+
+                                    ui.end_row();
+                                }
+                            });
                     });
                 }
-
             });
-
         });
     }
 }
 
 fn main() -> Result<(), eframe::Error> {
-
     let options = eframe::NativeOptions::default();
 
     eframe::run_native(
