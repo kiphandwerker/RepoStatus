@@ -49,41 +49,60 @@ fn is_github_repo(repo: &Repository) -> bool {
 }
 
 fn get_git_status(repo: &Repository) -> String {
+    // Get current branch
     let head = match repo.head() {
-        Ok(h) => h,
-        Err(_) => return "NA".into(),
+        Ok(h) if h.is_branch() => h,
+        _ => return "NA".into(),
     };
 
-    let branch = match head.shorthand() {
+    let branch_name = match head.shorthand() {
         Some(b) => b,
         None => return "NA".into(),
     };
 
-    let local = match repo.find_branch(branch, BranchType::Local) {
+    let local_branch = match repo.find_branch(branch_name, BranchType::Local) {
         Ok(b) => b,
         Err(_) => return "NA".into(),
     };
 
-    let upstream = match local.upstream() {
-        Ok(u) => u,
+    // Try to get upstream (remote-tracking branch)
+    let upstream_branch = match local_branch.upstream() {
+        Ok(b) => b,
         Err(_) => return "NA".into(),
     };
 
-    let local_oid = local.get().target().unwrap();
-    let upstream_oid = upstream.get().target().unwrap();
+    // Extract remote name
+    let upstream_name = upstream_branch.name().unwrap_or(None).unwrap_or("");
+    let remote_name = upstream_name.split('/').nth(2).unwrap_or("origin");
 
-    match repo.graph_ahead_behind(local_oid, upstream_oid) {
-        Ok((ahead, behind)) => {
-            if ahead == 0 && behind == 0 {
-                "Current".into()
-            } else if ahead > 0 && behind == 0 {
-                "Ahead".into()
-            } else if behind > 0 && ahead == 0 {
-                "Behind".into()
-            } else {
-                "Diverged".into()
-            }
-        }
+    // Fetch from remote
+    if let Ok(mut remote) = repo.find_remote(remote_name) {
+        let _ = remote.fetch(&[branch_name], Some(&mut git2::FetchOptions::new()), None);
+    }
+
+    // Resolve commits
+    let local_commit = match local_branch.get().peel_to_commit() {
+        Ok(c) => c,
+        Err(_) => return "NA".into(),
+    };
+
+    // Resolve upstream commit explicitly
+    let upstream_commit = match repo.find_reference(&format!("refs/remotes/{}/{}", remote_name, branch_name)) {
+        Ok(r) => match r.peel_to_commit() {
+            Ok(c) => c,
+            Err(_) => return "NA".into(),
+        },
+        Err(_) => return "NA".into(),
+    };
+
+    // Compare ahead/behind
+    match repo.graph_ahead_behind(local_commit.id(), upstream_commit.id()) {
+        Ok((ahead, behind)) => match (ahead, behind) {
+            (0, 0) => "Current".into(),
+            (a, 0) if a > 0 => "Ahead".into(),
+            (0, b) if b > 0 => "Behind".into(),
+            _ => "Diverged".into(),
+        },
         Err(_) => "NA".into(),
     }
 }
