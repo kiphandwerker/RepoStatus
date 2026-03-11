@@ -1,4 +1,4 @@
-// #![windows_subsystem = "windows"]
+#![windows_subsystem = "windows"]
 
 use eframe::egui;
 use git2::{FetchOptions, RemoteCallbacks, Repository};
@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use rfd::FileDialog;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{self, Receiver};
 use std::thread;
 use walkdir::WalkDir;
 
@@ -143,7 +143,7 @@ fn scan_repos(root: &Path) -> Vec<RepoInfo> {
         .max_depth(2)
         .into_iter()
         .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_dir() && e.depth() >= 1)
+        .filter(|e| e.file_type().is_dir() && e.depth() >= 2)
         .map(|e| e.path().to_path_buf())
         .collect();
 
@@ -331,7 +331,7 @@ impl eframe::App for GitApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             // ── Header ──────────────────────────────────────────────────────
             ui.horizontal(|ui| {
-                ui.heading("🗂  Git Repo Dashboard");
+                ui.heading("Git Repo Dashboard");
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.small("by Kip Handwerker");
                 });
