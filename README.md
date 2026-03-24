@@ -38,4 +38,13 @@ A fast, lightweight desktop app for scanning and monitoring multiple Git reposit
 5. Click any repo name to open it
 
 ## Status overview
-
+Each repo is categorized as:
+Status|Color|Meaning
+|------|-----|-----|
+Current    |Green |Local and remote are in sync
+Ahead      |Blue  |Local has commits not pushed
+Behind     |Red   |Remote has commits not pulled
+Diverged   |Yellow|Both local and remote have unique commits
+No Upstream|Purple|Branch has no upstream tracking
+NA         |Gray  |Could not determine status
+Non-Git    |Gray  |Not a Git repository
