@@ -39,8 +39,8 @@ A fast, lightweight desktop app for scanning and monitoring multiple Git reposit
 
 ## Status overview
 Each repo is categorized as:
-Status|Color|Meaning
-|------|-----|-----|
+Status     |Color |Meaning
+|----------|------|-----|
 Current    |Green |Local and remote are in sync
 Ahead      |Blue  |Local has commits not pushed
 Behind     |Red   |Remote has commits not pulled
