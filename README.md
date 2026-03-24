@@ -29,6 +29,13 @@ A fast, lightweight desktop app for scanning and monitoring multiple Git reposit
   * Status (color-coded)
 
 ## Usage
+1. Click 📂 Select Folder
+2. Choose a root directory containing projects
+3. Browse grouped repositories
+4. Use: <br>
+  🔄 Refresh to rescan <br>
+  ⬇ Fetch All to update remotes 
+5. Click any repo name to open it
 
 ## Status overview
 
