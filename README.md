@@ -19,6 +19,14 @@ A fast, lightweight desktop app for scanning and monitoring multiple Git reposit
 * Color-coded statuses for quick visual feedback
 
 ## UI overview
+* Top bar: Select folder, refresh, fetch all
+* Summary counts: Quick counts of repo states
+* Grouped view: Repos organized by parent folder
+* Status table:
+  * Folder name (clickable)
+  * Git presence
+  * GitHub detection
+  * Status (color-coded)
 
 ## Usage
 
