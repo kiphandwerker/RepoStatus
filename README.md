@@ -3,6 +3,7 @@
 A fast, lightweight desktop app for scanning and monitoring multiple Git repositories at once. Built with Rust using `egui`/`eframe`, it gives you a clear overview of repo status (ahead, behind, diverged, etc.) across a directory tree.
 
 ## Features
+
 * Scan a root folder for repositories (depth 2)
 * Parallel scanning using Rayon for speed
 * Fetch all remotes across repos with one click
@@ -19,6 +20,7 @@ A fast, lightweight desktop app for scanning and monitoring multiple Git reposit
 * Color-coded statuses for quick visual feedback
 
 ## UI overview
+
 * Top bar: Select folder, refresh, fetch all
 * Summary counts: Quick counts of repo states
 * Grouped view: Repos organized by parent folder
@@ -29,22 +31,25 @@ A fast, lightweight desktop app for scanning and monitoring multiple Git reposit
   * Status (color-coded)
 
 ## Usage
+
 1. Click 📂 Select Folder
 2. Choose a root directory containing projects
 3. Browse grouped repositories
 4. Use: <br>
   🔄 Refresh to rescan <br>
-  ⬇ Fetch All to update remotes 
+  ⬇ Fetch All to update remotes
 5. Click any repo name to open it
 
 ## Status overview
+
 Each repo is categorized as:
+
 Status     |Color |Meaning
 |----------|------|-----|
-Current    |Green |Local and remote are in sync
-Ahead      |Blue  |Local has commits not pushed
-Behind     |Red   |Remote has commits not pulled
-Diverged   |Yellow|Both local and remote have unique commits
-No Upstream|Purple|Branch has no upstream tracking
-NA         |Gray  |Could not determine status
-Non-Git    |Gray  |Not a Git repository
+|Current   |<span style="color:green;">  Green   </span>   |Local and remote are in sync
+Ahead      |<span style="color:blue;">   Blue    </span>   |Local has commits not pushed
+Behind     |<span style="color:red;">    Red     </span>   |Remote has commits not pulled
+Diverged   |<span style="color:yellow;"> Yellow  </span>   |Both local and remote have unique commits
+No Upstream|<span style="color:purple;"> Purple  </span>   |Branch has no upstream tracking
+NA         |<span style="color:gray;">   Gray    </span>   |Could not determine status
+Non-Git    |<span style="color:gray;">   Gray    </span>   |Not a Git repository
