@@ -277,12 +277,14 @@ impl GitApp {
                 self.fetching = false;
                 self.receiver = None;
                 self.status_msg = format!(
-                    "✅ {} git repos — {} current, {} ahead, {} behind, {} diverged",
+                    "✅ {} git repos — {} current, {} ahead, {} behind, {} diverged, {} no upstream, {} no github",
                     self.counts.total_git(),
                     self.counts.current,
                     self.counts.ahead,
                     self.counts.behind,
                     self.counts.diverged,
+                    self.counts.no_upstream,
+                    self.counts.non_git,
                 );
             }
         }
@@ -388,6 +390,7 @@ impl eframe::App for GitApp {
                         ("Behind", self.counts.behind, egui::Color32::from_rgb(255, 80, 80)),
                         ("Diverged", self.counts.diverged, egui::Color32::from_rgb(255, 200, 50)),
                         ("No Upstream", self.counts.no_upstream, egui::Color32::from_rgb(180, 130, 255)),
+                        ("NA", self.counts.na, egui::Color32::from_rgb(169, 169, 169)),
                     ];
                     for (label, count, color) in &pills {
                         if *count > 0 {
