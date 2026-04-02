@@ -85,7 +85,7 @@ fn get_git_status(repo: &Repository) -> String {
 
     let upstream = match branch.upstream() {
         Ok(u) => u,
-        Err(_) => return "No Upstream".into(), // clearer than "NA"
+        Err(_) => return "No Upstream".into(),
     };
 
     let local_oid = match branch.get().target() {
@@ -107,9 +107,6 @@ fn get_git_status(repo: &Repository) -> String {
     }
 }
 
-/// Fetch all remotes for a repo using unauthenticated (HTTPS public) or
-/// SSH-agent credentials.  Errors are silently swallowed — the caller only
-/// cares whether it succeeded.
 fn fetch_all_remotes(repo: &Repository) {
     let Ok(remote_names) = repo.remotes() else {
         return;
@@ -121,7 +118,6 @@ fn fetch_all_remotes(repo: &Repository) {
         };
 
         let mut callbacks = RemoteCallbacks::new();
-        // Try SSH agent first, fall back to no credentials (public HTTPS repos).
         callbacks.credentials(|_url, username, _allowed| {
             git2::Cred::ssh_key_from_agent(username.unwrap_or("git"))
         });
@@ -129,7 +125,6 @@ fn fetch_all_remotes(repo: &Repository) {
         let mut opts = FetchOptions::new();
         opts.remote_callbacks(callbacks);
 
-        // Fetch all branches; ignore individual remote errors.
         let _ = remote.fetch(&[] as &[&str], Some(&mut opts), None);
     }
 }
@@ -137,7 +132,6 @@ fn fetch_all_remotes(repo: &Repository) {
 // ── Scanning ──────────────────────────────────────────────────────────────────
 
 fn scan_repos(root: &Path) -> Vec<RepoInfo> {
-    // Collect candidate directories at depth 1 AND 2.
     let folders: Vec<PathBuf> = WalkDir::new(root)
         .min_depth(1)
         .max_depth(2)
@@ -167,7 +161,6 @@ fn scan_repos(root: &Path) -> Vec<RepoInfo> {
 }
 
 fn group_repos(root: &Path, mut repos: Vec<RepoInfo>) -> HashMap<String, Vec<RepoInfo>> {
-    // Sort repos by their full path so each group is alphabetically ordered.
     repos.sort_by(|a, b| a.folder_path.cmp(&b.folder_path));
 
     let mut grouped: HashMap<String, Vec<RepoInfo>> = HashMap::new();
@@ -178,8 +171,6 @@ fn group_repos(root: &Path, mut repos: Vec<RepoInfo>) -> HashMap<String, Vec<Rep
             .strip_prefix(root)
             .unwrap_or(&repo.folder_path);
 
-        // Depth-1 repos: use the repo folder itself as the group name with a
-        // special sentinel so the UI can render it differently.
         let group = relative
             .components()
             .next()
@@ -261,7 +252,6 @@ impl GitApp {
         self.receiver = Some(rx);
 
         thread::spawn(move || {
-            // Fetch every git repo in parallel.
             repos_snapshot.par_iter().for_each(|info| {
                 if info.is_git_repo {
                     if let Ok(repo) = Repository::open(&info.folder_path) {
@@ -270,7 +260,6 @@ impl GitApp {
                 }
             });
 
-            // Re-scan to pick up new upstream states.
             let updated = scan_repos(&root);
             tx.send(WorkerMsg::FetchDone(updated)).ok();
             ctx.request_repaint();
@@ -316,12 +305,10 @@ fn status_color(status: &str) -> egui::Color32 {
 
 impl eframe::App for GitApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Poll background worker.
         if let Some(rx) = &self.receiver {
             if let Ok(msg) = rx.try_recv() {
                 self.handle_worker_msg(msg);
             } else if self.scanning || self.fetching {
-                // Keep repainting while work is in progress.
                 ctx.request_repaint();
             }
         }
@@ -373,7 +360,6 @@ impl eframe::App for GitApp {
                 ui.checkbox(&mut self.hide_non_git, "Hide non-Git folders");
             });
 
-            // Root path label.
             if let Some(root) = &self.root {
                 ui.horizontal(|ui| {
                     ui.label("Root:");
@@ -381,7 +367,6 @@ impl eframe::App for GitApp {
                 });
             }
 
-            // Status / progress message.
             if !self.status_msg.is_empty() {
                 if busy {
                     ui.horizontal(|ui| {
@@ -395,7 +380,6 @@ impl eframe::App for GitApp {
 
             ui.separator();
 
-            // ── Summary pills ────────────────────────────────────────────────
             if self.counts.total_git() > 0 {
                 ui.horizontal(|ui| {
                     let pills = [
@@ -417,14 +401,12 @@ impl eframe::App for GitApp {
 
             // ── Repo table ───────────────────────────────────────────────────
             egui::ScrollArea::vertical().show(ui, |ui| {
-                // Sort group names for stable ordering.
                 let mut group_names: Vec<String> = self.grouped.keys().cloned().collect();
                 group_names.sort();
 
                 for group in &group_names {
                     let repos = &self.grouped[group];
 
-                    // Optionally filter groups that contain only non-git folders.
                     if self.hide_non_git && repos.iter().all(|r| !r.is_git_repo) {
                         continue;
                     }
@@ -432,7 +414,6 @@ impl eframe::App for GitApp {
                     let git_count = repos.iter().filter(|r| r.is_git_repo).count();
                     let header = format!("📁  {}  ({} git)", group, git_count);
 
-                    // Track open/closed state per group; default to open.
                     let open = self.open_groups.entry(group.clone()).or_insert(true);
 
                     let id = ui.make_persistent_id(group);
@@ -456,7 +437,6 @@ impl eframe::App for GitApp {
                                 ui.end_row();
 
                                 for repo in repos {
-                                    // Skip non-git rows when filter is active.
                                     if self.hide_non_git && !repo.is_git_repo {
                                         continue;
                                     }
