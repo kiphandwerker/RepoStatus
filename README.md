@@ -41,10 +41,10 @@ A fast, lightweight desktop app for scanning and monitoring multiple Git reposit
 Each repo is categorized as:
 Status     |Color |Meaning
 |----------|------|-----|
-Current    |Green |Local and remote are in sync
-Ahead      |Blue  |Local has commits not pushed
-Behind     |Red   |Remote has commits not pulled
-Diverged   |Yellow|Both local and remote have unique commits
-No Upstream|Purple|Branch has no upstream tracking
-NA         |Gray  |Could not determine status
-Non-Git    |Gray  |Not a Git repository
+Current    |${\textsf{\color{green}Green}}$|Local and remote are in sync
+Ahead      |${\textsf{\color{blue}Blue}}$  |Local has commits not pushed
+Behind     |${\textsf{\color{red}Red}}$   |Remoite has commits not pulled
+Diverged   |${\textsf{\color{yellow}Yellow}}$|Both local and remote have unique commits
+No Upstream|${\textsf{\color{purple}Purple}}$|Branch has no upstream tracking
+NA         |${\textsf{\color{gray}Gray}}$  |Could not determine status
+Non-Git    |${\textsf{\color{gray}Gray}}$  |Not a Git repository
