@@ -2,7 +2,7 @@
 
 I wanted something to give a quick snapshot of my project folders and their git statuses so I could minimize my merge issues. So here is a fast, lightweight desktop app for scanning and monitoring multiple Git repositories at once.
 
-![](../gitstatus/pics/snip.png)
+![](pics/snip.png)
 
 ## Features
 
