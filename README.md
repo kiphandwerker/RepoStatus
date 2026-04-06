@@ -48,7 +48,7 @@ Status     |Color |Meaning
 |----------|------|-----|
 Current    |${\textsf{\color{green}Green}}$|Local and remote are in sync
 Ahead      |${\textsf{\color{blue}Blue}}$  |Local has commits not pushed
-Behind     |${\textsf{\color{red}Red}}$   |Remoite has commits not pulled
+Behind     |${\textsf{\color{red}Red}}$   |Remote has commits not pulled
 Diverged   |${\textsf{\color{yellow}Yellow}}$|Both local and remote have unique commits
 No Upstream|${\textsf{\color{purple}Purple}}$|Branch has no upstream tracking
 NA         |${\textsf{\color{gray}Gray}}$  |Could not determine status
