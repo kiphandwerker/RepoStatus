@@ -21,6 +21,22 @@ I wanted something to give a quick snapshot of my project folders and their git 
 * Click-to-open folders in your OS file manager
 * Color-coded statuses for quick visual feedback
 
+## Requirements to build on your end
+
+* Install [Rust](https://rust-lang.org/tools/install/)
+* Set up [GitHub SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
+* Clone the git repo
+```
+git clone https://github.com/kiphandwerker/RepoStatus.git
+```
+
+* Build the project
+```
+cargo build --release
+```
+
+* Bonus: Create a shortcut and place it on the desktop for easier execution
+
 ## UI overview
 
 * Top bar: Select folder, refresh, fetch all
