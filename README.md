@@ -4,6 +4,13 @@ I wanted something to give a quick snapshot of my project folders and their git 
 
 ![](pics/snip.png)
 
+## Table of Contents
+- [Features](#features)
+- [UI overview](#ui-overview)
+- [Usage](#usage)
+- [Status overview](#status-overview)
+- [Build requirements](#build-requirements)
+
 ## Features
 
 * Scan a root folder for repositories (depth 2)
@@ -21,21 +28,6 @@ I wanted something to give a quick snapshot of my project folders and their git 
 * Click-to-open folders in your OS file manager
 * Color-coded statuses for quick visual feedback
 
-## Requirements to build on your end
-
-* Install [Rust](https://rust-lang.org/tools/install/)
-* Set up [GitHub SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
-* Clone the git repo
-```
-git clone https://github.com/kiphandwerker/RepoStatus.git
-```
-
-* Build the project
-```
-cargo build --release
-```
-
-* Bonus: Create a shortcut and place it on the desktop for easier execution
 
 ## UI overview
 
@@ -71,3 +63,19 @@ Diverged   |${\textsf{\color{yellow}Yellow}}$|Both local and remote have unique 
 No Upstream|${\textsf{\color{purple}Purple}}$|Branch has no upstream tracking
 NA         |${\textsf{\color{gray}Gray}}$  |Could not determine status
 Non-Git    |${\textsf{\color{gray}Gray}}$  |Not a Git repository
+
+## Build Requirements
+
+* Install [Rust](https://rust-lang.org/tools/install/)
+* Set up [GitHub SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
+* Clone the git repo
+```
+git clone https://github.com/kiphandwerker/RepoStatus.git
+```
+
+* Build the project
+```
+cargo build --release
+```
+
+* Bonus: Create a shortcut and place it on the desktop for easier execution
