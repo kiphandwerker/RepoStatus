@@ -277,13 +277,14 @@ impl GitApp {
                 self.fetching = false;
                 self.receiver = None;
                 self.status_msg = format!(
-                    "✅ {} git repos — {} current, {} ahead, {} behind, {} diverged, {} no upstream, {} no github",
+                    "✅ {} git repos — {} current, {} ahead, {} behind, {} diverged, {} no upstream, {} na \n❌ {} No Github",
                     self.counts.total_git(),
                     self.counts.current,
                     self.counts.ahead,
                     self.counts.behind,
                     self.counts.diverged,
                     self.counts.no_upstream,
+                    self.counts.na,
                     self.counts.non_git,
                 );
             }
