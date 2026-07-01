@@ -30,6 +30,7 @@ struct StatusCounts {
     no_upstream: usize,
     na: usize,
     non_git: usize,
+    no_github: usize,
 }
 
 impl StatusCounts {
@@ -44,6 +45,9 @@ impl StatusCounts {
                 "No Upstream" => c.no_upstream += 1,
                 "Non-Git" => c.non_git += 1,
                 _ => c.na += 1,
+            }
+            if repo.is_git_repo && !repo.is_github_repo {
+                c.no_github += 1;
             }
         }
         c
@@ -133,11 +137,11 @@ fn fetch_all_remotes(repo: &Repository) {
 
 fn scan_repos(root: &Path) -> Vec<RepoInfo> {
     let folders: Vec<PathBuf> = WalkDir::new(root)
-        .min_depth(1)
+        .min_depth(2)
         .max_depth(2)
         .into_iter()
         .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_dir() && e.depth() >= 2)
+        .filter(|e| e.file_type().is_dir())
         .map(|e| e.path().to_path_buf())
         .collect();
 
@@ -202,8 +206,6 @@ struct GitApp {
     fetching: bool,
     status_msg: String,
     receiver: Option<Receiver<WorkerMsg>>,
-    /// Which groups are currently expanded (open collapsibles).
-    open_groups: HashMap<String, bool>,
     /// Whether to hide Non-Git folders.
     hide_non_git: bool,
 }
@@ -218,7 +220,6 @@ impl Default for GitApp {
             fetching: false,
             status_msg: String::new(),
             receiver: None,
-            open_groups: HashMap::new(),
             hide_non_git: true,
         }
     }
@@ -239,6 +240,7 @@ impl GitApp {
             ctx.request_repaint();
         });
     }
+
 
     fn start_fetch(&mut self, ctx: egui::Context) {
         let Some(root) = self.root.clone() else {
@@ -277,7 +279,7 @@ impl GitApp {
                 self.fetching = false;
                 self.receiver = None;
                 self.status_msg = format!(
-                    "✅ {} git repos — {} current, {} ahead, {} behind, {} diverged, {} no upstream, {} na \n❌ {} No Github",
+                    "✅ {} git repos — {} current, {} ahead, {} behind, {} diverged, {} no upstream, {} na\n❌ {} no GitHub  |  {} non-Git",
                     self.counts.total_git(),
                     self.counts.current,
                     self.counts.ahead,
@@ -285,6 +287,7 @@ impl GitApp {
                     self.counts.diverged,
                     self.counts.no_upstream,
                     self.counts.na,
+                    self.counts.no_github,
                     self.counts.non_git,
                 );
             }
@@ -335,7 +338,6 @@ impl eframe::App for GitApp {
                     .clicked()
                 {
                     if let Some(folder) = FileDialog::new().pick_folder() {
-                        self.open_groups.clear();
                         self.start_scan(folder, ctx.clone());
                     }
                 }
@@ -418,11 +420,9 @@ impl eframe::App for GitApp {
                     let git_count = repos.iter().filter(|r| r.is_git_repo).count();
                     let header = format!("📁  {}  ({} git)", group, git_count);
 
-                    let open = self.open_groups.entry(group.clone()).or_insert(true);
-
                     let id = ui.make_persistent_id(group);
                     egui::collapsing_header::CollapsingState::load_with_default_open(
-                        ctx, id, *open,
+                        ctx, id, true,
                     )
                     .show_header(ui, |ui| {
                         ui.strong(&header);
